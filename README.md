@@ -1,4 +1,5 @@
-"# iyaloja" 
+# iyaloja
+## An operating system for small and medium scale businesses
 
 This project aims to simplify operations for small and medium scale businesses,
 by automating common back office processes
