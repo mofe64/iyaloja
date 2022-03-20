@@ -12,7 +12,7 @@ import (
 
 var inventoryCollection = config.GetCollection(config.DATABASE, "inventories")
 
-func createInventory() gin.HandlerFunc {
+func CreateInventory() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()

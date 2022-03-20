@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mofe64/iyaloja/inventory/config"
 	"github.com/mofe64/iyaloja/inventory/middleware"
+	"github.com/mofe64/iyaloja/inventory/route"
 	"github.com/mofe64/iyaloja/inventory/util"
 	"net/http"
 	"os"
@@ -19,13 +20,18 @@ func main() {
 	router.Use(middleware.CustomLogger())
 	router.Use(gin.Recovery())
 
-	//Set up Database Connection
+	// Set up Database Connection
 	config.ConnectDB()
 
+	// Set up ping route
 	router.GET("/ping", func(c *gin.Context) {
 		c.String(200, "pong")
 	})
 
+	//Application Routes
+	route.InventoryRoute(router)
+
+	// Create Custom Server
 	server := &http.Server{
 		Addr:    ":" + config.EnvHTTPPort(),
 		Handler: router,
