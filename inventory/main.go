@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/mofe64/iyaloja/inventory/config"
 	"github.com/mofe64/iyaloja/inventory/middleware"
-	"log"
+	"github.com/mofe64/iyaloja/inventory/util"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,24 +15,26 @@ import (
 )
 
 func main() {
-	applicationLog := log.New(os.Stdout, "inventory-service", log.LstdFlags)
 	router := gin.New()
 	router.Use(middleware.CustomLogger())
 	router.Use(gin.Recovery())
+
+	//Set up Database Connection
+	config.ConnectDB()
 
 	router.GET("/ping", func(c *gin.Context) {
 		c.String(200, "pong")
 	})
 
 	server := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":" + config.EnvHTTPPort(),
 		Handler: router,
 	}
 
 	go func() {
-		applicationLog.Println("Starting server on ...")
+		util.ApplicationLog.Println("Starting server on port " + config.EnvHTTPPort())
 		if err := server.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
-			applicationLog.Printf("error listen: %v\n", err)
+			util.ApplicationLog.Printf("error listen: %v\n", err)
 		}
 	}()
 
@@ -42,15 +45,15 @@ func main() {
 
 	// Block until a signal is received.
 	sig := <-c
-	applicationLog.Println("Received signal:", sig)
+	util.ApplicationLog.Println("Received signal:", sig)
 	// gracefully shutdown the server, waiting max 30 seconds for current operations to complete
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		applicationLog.Fatal("Server forced to shutdown:", err)
+		util.ApplicationLog.Fatal("Server forced to shutdown:", err)
 	}
 
-	applicationLog.Println("Server exiting....")
+	util.ApplicationLog.Println("Server exiting....")
 
 }

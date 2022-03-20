@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/joho/godotenv"
-	"log"
+	"github.com/mofe64/iyaloja/inventory/util"
 	"os"
 )
 
@@ -14,7 +14,7 @@ func loadEnv() {
 	} else {
 		err := godotenv.Load()
 		if err != nil {
-			log.Fatalln("Error loading env file")
+			util.ApplicationLog.Fatalln("Error loading env file")
 		}
 		envLoaded = true
 	}
@@ -23,6 +23,10 @@ func loadEnv() {
 func EnvMongoURI() string {
 	loadEnv()
 	return os.Getenv("MONGOURI")
+}
+
+func EnvDatabaseName() string {
+	return os.Getenv("DATABASE_NAME")
 }
 
 func EnvHTTPPort() string {

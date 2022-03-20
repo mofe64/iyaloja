@@ -7,7 +7,7 @@ import (
 )
 
 type Order struct {
-	Id            primitive.ObjectID `json:"id" bson:"_id"`
+	Id            primitive.ObjectID `json:"id"`
 	DateCreated   time.Time          `json:"dateCreated"`
 	DateFulfilled time.Time          `json:"dateFulfilled"`
 	Type          enum.OrderType     `json:"type"`
