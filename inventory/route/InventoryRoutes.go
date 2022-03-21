@@ -6,8 +6,9 @@ import (
 )
 
 func InventoryRoute(router *gin.Engine) {
-	inventoryRoutes := router.Group("/inventory")
+	inventoryRoutes := router.Group("api/v1/inventory")
 	{
 		inventoryRoutes.POST("", handler.CreateInventory())
+		inventoryRoutes.GET("/owner/:ownerId", handler.GetInventories())
 	}
 }
