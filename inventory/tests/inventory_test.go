@@ -240,3 +240,26 @@ func Test_getUserInventories(t *testing.T) {
 	})
 
 }
+
+func Test_deleteInventory(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	_, dbErr := populateDB(ctx)
+	if dbErr != nil {
+		t.Fatalf("Error performing insert op %v\n", dbErr)
+	}
+	queryIdByteSlice, _ := objIds[0].MarshalText()
+	queryId := string(queryIdByteSlice)
+	ctx.Request = &http.Request{
+		Method: "DELETE",
+		Header: make(http.Header),
+	}
+
+	ctx.Params = append(ctx.Params, gin.Param{
+		Key:   "inventoryId",
+		Value: queryId,
+	})
+	deleteInventoryHandler := handler.DeleteInventory()
+	deleteInventoryHandler(ctx)
+	assert.Equal(t, http.StatusNoContent, w.Code)
+}

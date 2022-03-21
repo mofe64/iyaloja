@@ -120,3 +120,22 @@ func GetSingleInventory() gin.HandlerFunc {
 		})
 	}
 }
+
+func DeleteInventory() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		inventoryId := c.Param("inventoryId")
+		util.ApplicationLog.Println("received inventory id " + inventoryId)
+		objId, _ := primitive.ObjectIDFromHex(inventoryId)
+		deleteRes, err := inventoryCollection.DeleteOne(ctx, bson.M{"_id": objId})
+		if err != nil {
+			util.GenerateInternalServerErrorResponse(c, err.Error())
+		}
+		if deleteRes.DeletedCount == 0 {
+			util.GenerateBadRequestResponse(c, "No Inventory found with that Id")
+		}
+		//TODO delete associated inventory items
+		util.GenerateJSONResponse(c, http.StatusNoContent, "Inventory deleted", gin.H{})
+	}
+}

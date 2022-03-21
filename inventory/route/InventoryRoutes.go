@@ -11,5 +11,6 @@ func InventoryRoute(router *gin.Engine) {
 		inventoryRoutes.POST("", handler.CreateInventory())
 		inventoryRoutes.GET("/:inventoryId", handler.GetSingleInventory())
 		inventoryRoutes.GET("/owner/:ownerId", handler.GetInventories())
+		inventoryRoutes.DELETE("/:inventoryId", handler.DeleteInventory())
 	}
 }
