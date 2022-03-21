@@ -58,7 +58,7 @@ func GetInventories() gin.HandlerFunc {
 		ownerId := c.Param("ownerId")
 		util.ApplicationLog.Println("Owner id param " + ownerId)
 
-		var inventories []model.Inventory
+		inventories := []model.Inventory{}
 		queryOptions := options.Find()
 		queryOptions.SetSort(bson.D{{"DateCreated", -1}})
 
