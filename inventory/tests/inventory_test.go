@@ -32,39 +32,48 @@ func MockJsonPost(c *gin.Context, content interface{}) {
 	// so you wrap it in a no-op closer
 	c.Request.Body = io.NopCloser(bytes.NewBuffer(requestBody))
 }
-func populateDB(ctx *gin.Context) {
+
+var objIds = []primitive.ObjectID{
+	primitive.NewObjectID(),
+	primitive.NewObjectID(),
+	primitive.NewObjectID(),
+	primitive.NewObjectID(),
+}
+
+func populateDB(ctx *gin.Context) ([]interface{}, error) {
 	inventoryObjs := []interface{}{
 		model.Inventory{
 			Name:        "inventory1",
 			Description: "inventory1",
 			OwnerId:     "1",
-			Id:          primitive.NewObjectID(),
+			Id:          objIds[0],
 		},
 		model.Inventory{
 			Name:        "inventory2",
 			Description: "inventory2",
 			OwnerId:     "1",
-			Id:          primitive.NewObjectID(),
+			Id:          objIds[1],
 		},
 		model.Inventory{
 			Name:        "inventory3",
 			Description: "inventory3",
 			OwnerId:     "2",
-			Id:          primitive.NewObjectID(),
+			Id:          objIds[2],
 		},
 		model.Inventory{
 			Name:        "inventory4",
 			Description: "inventory4",
 			OwnerId:     "3",
-			Id:          primitive.NewObjectID(),
+			Id:          objIds[3],
 		},
 	}
 
 	inventoryCollection := config.GetCollection(config.DATABASE, "inventories")
-	_, err := inventoryCollection.InsertMany(ctx, inventoryObjs)
+	insertManyResult, err := inventoryCollection.InsertMany(ctx, inventoryObjs)
 	if err != nil {
-		return
+		return nil, err
 	}
+	return insertManyResult.InsertedIDs, nil
 
 }
 
@@ -138,6 +147,67 @@ func Test_createInventoryHandler_failsWhenRequiredFieldMissing(t *testing.T) {
 
 }
 
+func Test_getSingleInventory(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	_, dbErr := populateDB(ctx)
+	if dbErr != nil {
+		t.Fatalf("Error performing insert op %v\n", dbErr)
+	}
+	queryIdByteSlice, _ := objIds[0].MarshalText()
+	queryId := string(queryIdByteSlice)
+	ctx.Request = &http.Request{
+		Method: "GET",
+		Header: make(http.Header),
+	}
+
+	ctx.Params = append(ctx.Params, gin.Param{
+		Key:   "inventoryId",
+		Value: queryId,
+	})
+	getSingleInventory := handler.GetSingleInventory()
+	getSingleInventory(ctx)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var res response.APIResponse
+	responseString := w.Body.String()
+	err := json.Unmarshal([]byte(responseString), &res)
+	if err != nil {
+		util.ApplicationLog.Printf("ERROR UNMARSHALLING RESPONSE %v\n", err)
+	}
+	assert.Equal(t, http.StatusOK, res.Status)
+	assert.NotNil(t, res.Data)
+	assert.Equal(t, "Success", res.Message)
+}
+
+func Test_getSingleInventory_returns404IfIdIncorrect(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	_, dbErr := populateDB(ctx)
+	if dbErr != nil {
+		t.Fatalf("Error performing insert op %v\n", dbErr)
+	}
+
+	ctx.Request = &http.Request{
+		Method: "GET",
+		Header: make(http.Header),
+	}
+
+	ctx.Params = append(ctx.Params, gin.Param{
+		Key:   "inventoryId",
+		Value: "12345",
+	})
+	getSingleInventory := handler.GetSingleInventory()
+	getSingleInventory(ctx)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	var res response.APIResponse
+	responseString := w.Body.String()
+	err := json.Unmarshal([]byte(responseString), &res)
+	if err != nil {
+		util.ApplicationLog.Printf("ERROR UNMARSHALLING RESPONSE %v\n", err)
+	}
+	assert.Equal(t, http.StatusNotFound, res.Status)
+}
+
 func Test_getUserInventories(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
@@ -149,7 +219,10 @@ func Test_getUserInventories(t *testing.T) {
 		Key:   "ownerId",
 		Value: "1",
 	})
-	populateDB(ctx)
+	_, dbErr := populateDB(ctx)
+	if dbErr != nil {
+		t.Fatalf("Error performing insert op %v\n", dbErr)
+	}
 	getInventoriesHandler := handler.GetInventories()
 	getInventoriesHandler(ctx)
 	assert.Equal(t, http.StatusOK, w.Code)

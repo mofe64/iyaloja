@@ -32,7 +32,7 @@ func CreateInventory() gin.HandlerFunc {
 		}
 		if validationErr := validate.Struct(&inventory); validationErr != nil {
 			util.ApplicationLog.Println("validation error")
-			util.GenerateJSONResponse(c, http.StatusBadRequest, validationErr.Error(), gin.H{})
+			util.GenerateBadRequestResponse(c, validationErr.Error())
 			return
 		}
 
@@ -43,7 +43,7 @@ func CreateInventory() gin.HandlerFunc {
 		saveResult, err := inventoryCollection.InsertOne(ctx, inventory)
 		if err != nil {
 			util.ApplicationLog.Printf("Error Saving Obj %v\n", err)
-			util.GenerateJSONResponse(c, http.StatusInternalServerError, err.Error(), gin.H{})
+			util.GenerateInternalServerErrorResponse(c, err.Error())
 			return
 		}
 		util.GenerateJSONResponse(c, http.StatusCreated, "Success", gin.H{
@@ -71,7 +71,7 @@ func GetInventories() gin.HandlerFunc {
 		}(cursor, ctx)
 
 		if err != nil {
-			util.GenerateJSONResponse(c, http.StatusInternalServerError, err.Error(), gin.H{})
+			util.GenerateInternalServerErrorResponse(c, err.Error())
 			return
 		}
 
@@ -81,7 +81,7 @@ func GetInventories() gin.HandlerFunc {
 			util.ApplicationLog.Println("Decoded inventory result")
 			util.ApplicationLog.Println(result)
 			if err != nil {
-				util.GenerateJSONResponse(c, http.StatusInternalServerError, err.Error(), gin.H{})
+				util.GenerateInternalServerErrorResponse(c, err.Error())
 				return
 			}
 			inventories = append(inventories, result)
@@ -94,6 +94,29 @@ func GetInventories() gin.HandlerFunc {
 		util.GenerateJSONResponse(c, http.StatusOK, "Success", gin.H{
 			"inventoryCount": len(inventories),
 			"inventories":    inventories,
+		})
+	}
+}
+
+func GetSingleInventory() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		inventoryId := c.Param("inventoryId")
+		util.ApplicationLog.Println("received inventory id " + inventoryId)
+		objId, _ := primitive.ObjectIDFromHex(inventoryId)
+		var inventory model.Inventory
+		filter := bson.D{{"_id", objId}}
+		err := inventoryCollection.FindOne(ctx, filter).Decode(&inventory)
+		if err == mongo.ErrNoDocuments {
+			util.GenerateJSONResponse(c, http.StatusNotFound, "Not Found", gin.H{})
+			return
+		} else if err != nil {
+			util.GenerateInternalServerErrorResponse(c, err.Error())
+		}
+
+		util.GenerateJSONResponse(c, http.StatusOK, "Success", gin.H{
+			"inventory": inventory,
 		})
 	}
 }
