@@ -20,17 +20,6 @@ func ConnectDB() *mongo.Client {
 	if err != nil {
 		util.ApplicationLog.Fatalln("Error connecting to Mongodb %v", err)
 	}
-
-	// Defer disconnection of client if we are not in test mode
-	if EnvProfile() != "test" {
-		defer func() {
-			util.ApplicationLog.Println("Mongo disconnecting from client ")
-			if err = client.Disconnect(ctx); err != nil {
-				panic(err)
-			}
-		}()
-	}
-
 	// Ping Mongo db Database
 	err = client.Ping(ctx, readpref.Primary())
 	if err != nil {

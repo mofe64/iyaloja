@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-// Helper method to test post requests, we pass a test context as well as the conten
+// Helper method to test post requests, we pass a test context as well as the content
 func MockJsonPost(c *gin.Context, content interface{}) {
 	c.Request.Method = "POST"
 	c.Request.Header.Set("Content-Type", "application/json")
@@ -57,13 +57,14 @@ func Test_createInventoryHandler(t *testing.T) {
 	MockJsonPost(ctx, reqBody)
 	createInventoryHandler := handler.CreateInventory()
 	createInventoryHandler(ctx)
-	assert.Equal(t, http.StatusCreated, w.Code)
+
 	var res response.APIResponse
 	responseString := w.Body.String()
 	err := json.Unmarshal([]byte(responseString), &res)
 	if err != nil {
 		util.ApplicationLog.Printf("ERROR UNMARSHALLING RESPONSE %v\n", err)
 	}
+	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.Equal(t, http.StatusCreated, res.Status)
 	assert.Equal(t, "Success", res.Message)
 	assert.NotNil(t, res.Timestamp)
@@ -71,4 +72,29 @@ func Test_createInventoryHandler(t *testing.T) {
 	t.Cleanup(func() {
 		CleanUpDbOps(ctx)
 	})
+}
+func Test_createInventoryHandler_failsWhenRequiredFieldMissing(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Request = &http.Request{
+		Header: make(http.Header),
+	}
+	reqBody := gin.H{}
+	MockJsonPost(ctx, reqBody)
+	createInventoryHandler := handler.CreateInventory()
+	createInventoryHandler(ctx)
+
+	var res response.APIResponse
+	responseString := w.Body.String()
+	err := json.Unmarshal([]byte(responseString), &res)
+	if err != nil {
+		util.ApplicationLog.Printf("ERROR UNMARSHALLING RESPONSE %v\n", err)
+	}
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, http.StatusBadRequest, res.Status)
+	assert.NotNil(t, res.Timestamp)
+	t.Cleanup(func() {
+		CleanUpDbOps(ctx)
+	})
+
 }
