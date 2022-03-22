@@ -20,6 +20,7 @@ import (
 )
 
 // Helper method to test post requests, we pass a test context as well as the content
+
 func MockJsonRequestBody(c *gin.Context, content interface{}, methodName string) {
 	c.Request.Method = methodName
 	c.Request.Header.Set("Content-Type", "application/json")
@@ -43,6 +44,7 @@ var objIds = []primitive.ObjectID{
 }
 
 func populateDB(ctx *gin.Context) ([]interface{}, error) {
+	config.ConnectDB()
 	inventoryObjs := []interface{}{
 		model.Inventory{
 			Name:        "inventory1",

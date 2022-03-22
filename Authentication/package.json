@@ -1,0 +1,10 @@
+{
+  "name": "iyaloja_authentication_service",
+  "version": "1.0.0",
+  "description": "authentication and user service for the iyaloja service",
+  "main": "index.js",
+  "repository": "github.com/mofe64/iyaloja/authentication",
+  "author": "mofe",
+  "license": "MIT",
+  "private": false
+}
