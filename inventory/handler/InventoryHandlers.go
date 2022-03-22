@@ -121,6 +121,64 @@ func GetSingleInventory() gin.HandlerFunc {
 	}
 }
 
+func UpdateInventory() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		inventoryId := c.Param("inventoryId")
+		util.ApplicationLog.Println("received inventory id " + inventoryId)
+		objId, _ := primitive.ObjectIDFromHex(inventoryId)
+		var updateDetails model.Inventory
+		if err := c.ShouldBindJSON(&updateDetails); err != nil {
+			util.ApplicationLog.Printf("Error binding Json Obj %v\n", err)
+			util.GenerateJSONResponse(c, http.StatusBadRequest, err.Error(), gin.H{})
+			return
+		}
+
+		updatingName := len(updateDetails.Name) > 0
+		updatingDescription := len(updateDetails.Description) > 0
+		updatingTags := len(updateDetails.InventoryTags) > 0
+
+		if !updatingName && !updatingTags && !updatingDescription {
+			util.GenerateBadRequestResponse(c, "Update operation not allowed")
+			return
+		}
+
+		var inventoryToUpdate model.Inventory
+		filter := bson.D{{"_id", objId}}
+		err := inventoryCollection.FindOne(ctx, filter).Decode(&inventoryToUpdate)
+		if err == mongo.ErrNoDocuments {
+			util.GenerateJSONResponse(c, http.StatusNotFound, "Not Found", gin.H{})
+			return
+		} else if err != nil {
+			util.GenerateInternalServerErrorResponse(c, err.Error())
+			return
+		}
+		if updatingName {
+			inventoryToUpdate.Name = updateDetails.Name
+		}
+		if updatingDescription {
+			inventoryToUpdate.Description = updateDetails.Description
+		}
+		if updatingTags {
+			inventoryToUpdate.InventoryTags = append(inventoryToUpdate.InventoryTags, updateDetails.InventoryTags...)
+		}
+		inventoryToUpdate.DateModified = time.Now()
+
+		singleResult := inventoryCollection.FindOneAndReplace(ctx, filter, inventoryToUpdate)
+		err = singleResult.Err()
+		if err == mongo.ErrNoDocuments {
+			util.GenerateBadRequestResponse(c, err.Error())
+		} else if err != nil {
+			util.GenerateInternalServerErrorResponse(c, err.Error())
+		}
+		util.GenerateJSONResponse(c, http.StatusOK, "Update Success", gin.H{
+			"updatedInventory": inventoryToUpdate,
+		})
+
+	}
+}
+
 func DeleteInventory() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

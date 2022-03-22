@@ -10,7 +10,9 @@ import (
 	"github.com/mofe64/iyaloja/inventory/handler"
 	"github.com/mofe64/iyaloja/inventory/util"
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -18,8 +20,8 @@ import (
 )
 
 // Helper method to test post requests, we pass a test context as well as the content
-func MockJsonPost(c *gin.Context, content interface{}) {
-	c.Request.Method = "POST"
+func MockJsonRequestBody(c *gin.Context, content interface{}, methodName string) {
+	c.Request.Method = methodName
 	c.Request.Header.Set("Content-Type", "application/json")
 
 	requestBody, err := json.Marshal(content)
@@ -101,7 +103,7 @@ func Test_createInventoryHandler(t *testing.T) {
 		"ownerId":     "1234",
 	}
 
-	MockJsonPost(ctx, reqBody)
+	MockJsonRequestBody(ctx, reqBody, "POST")
 	createInventoryHandler := handler.CreateInventory()
 	createInventoryHandler(ctx)
 
@@ -124,11 +126,10 @@ func Test_createInventoryHandler_failsWhenRequiredFieldMissing(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
 	ctx.Request = &http.Request{
-		Method: "POST",
 		Header: make(http.Header),
 	}
 	reqBody := gin.H{}
-	MockJsonPost(ctx, reqBody)
+	MockJsonRequestBody(ctx, reqBody, "POST")
 	createInventoryHandler := handler.CreateInventory()
 	createInventoryHandler(ctx)
 
@@ -262,4 +263,118 @@ func Test_deleteInventory(t *testing.T) {
 	deleteInventoryHandler := handler.DeleteInventory()
 	deleteInventoryHandler(ctx)
 	assert.Equal(t, http.StatusNoContent, w.Code)
+}
+
+func Test_updateInventory(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	_, dbErr := populateDB(ctx)
+	if dbErr != nil {
+		t.Fatalf("Error performing insert op %v\n", dbErr)
+	}
+	queryIdByteSlice, _ := objIds[0].MarshalText()
+	queryId := string(queryIdByteSlice)
+	ctx.Request = &http.Request{
+		Header: make(http.Header),
+	}
+
+	ctx.Params = append(ctx.Params, gin.Param{
+		Key:   "inventoryId",
+		Value: queryId,
+	})
+	updatePayload := gin.H{
+		"name":        "test inventory update",
+		"description": "test description update",
+	}
+	MockJsonRequestBody(ctx, updatePayload, "PATCH")
+
+	updateHandler := handler.UpdateInventory()
+	updateHandler(ctx)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var res response.APIResponse
+	responseString := w.Body.String()
+	err := json.Unmarshal([]byte(responseString), &res)
+	if err != nil {
+		util.ApplicationLog.Printf("ERROR UNMARSHALLING RESPONSE %v\n", err)
+	}
+
+	assert.Equal(t, http.StatusOK, res.Status)
+	assert.Equal(t, "Update Success", res.Message)
+
+	var updatedInventory model.Inventory
+	inventoryCollection := config.GetCollection(config.DATABASE, "inventories")
+	filter := bson.D{{"_id", objIds[0]}}
+	err = inventoryCollection.FindOne(ctx, filter).Decode(&updatedInventory)
+	if err == mongo.ErrNoDocuments {
+		t.Fatal("Error", err)
+	}
+
+	assert.Equal(t, "test inventory update", updatedInventory.Name)
+	assert.Equal(t, "test description update", updatedInventory.Description)
+}
+
+func Test_updateInventoryDoesNotAllowUpdateToRestrictedFields(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	_, dbErr := populateDB(ctx)
+	if dbErr != nil {
+		t.Fatalf("Error performing insert op %v\n", dbErr)
+	}
+	queryIdByteSlice, _ := objIds[0].MarshalText()
+	queryId := string(queryIdByteSlice)
+	ctx.Request = &http.Request{
+		Header: make(http.Header),
+	}
+
+	ctx.Params = append(ctx.Params, gin.Param{
+		Key:   "inventoryId",
+		Value: queryId,
+	})
+	updatePayload := gin.H{
+		"itemCount": 10,
+	}
+	MockJsonRequestBody(ctx, updatePayload, "PATCH")
+
+	updateHandler := handler.UpdateInventory()
+	updateHandler(ctx)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	var res response.APIResponse
+	responseString := w.Body.String()
+	err := json.Unmarshal([]byte(responseString), &res)
+	if err != nil {
+		util.ApplicationLog.Printf("ERROR UNMARSHALLING RESPONSE %v\n", err)
+	}
+	assert.Equal(t, http.StatusBadRequest, res.Status)
+	assert.Equal(t, "Update operation not allowed", res.Message)
+}
+
+func Test_updateInventoryReturnsBadRequestWhenWrongIdProvided(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	_, dbErr := populateDB(ctx)
+	if dbErr != nil {
+		t.Fatalf("Error performing insert op %v\n", dbErr)
+	}
+	ctx.Request = &http.Request{
+		Header: make(http.Header),
+	}
+
+	ctx.Params = append(ctx.Params, gin.Param{
+		Key:   "inventoryId",
+		Value: "12345",
+	})
+
+	updatePayload := gin.H{
+		"name":        "test inventory update",
+		"description": "test description update",
+	}
+	MockJsonRequestBody(ctx, updatePayload, "PATCH")
+
+	updateHandler := handler.UpdateInventory()
+	updateHandler(ctx)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
 }
