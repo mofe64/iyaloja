@@ -1,13 +1,15 @@
 {
-  "name": "iyaloja_authentication_service",
+  "name": "user_service",
   "version": "1.0.0",
-  "description": "authentication and user service for the iyaloja service",
+  "description": "",
   "main": "index.js",
-  "repository": "github.com/mofe64/iyaloja/authentication",
-  "author": "mofe",
-  "license": "MIT",
-  "private": false,
   "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.2",
