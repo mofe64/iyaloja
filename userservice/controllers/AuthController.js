@@ -8,7 +8,7 @@ import {promisify} from 'util';
 const signToken = (id) => {
     return jwt.sign({id}, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRES_IN,
-    });
+    } );
 };
 
 const createAndSendToken = (user, statusCode, res) => {
@@ -24,8 +24,8 @@ const createAndSendToken = (user, statusCode, res) => {
 };
 
 export const register = catchAsync(async (req, res, next) => {
-    const {email, password} = req.body;
-    const newUser = await User.create({email, password});
+    const {firstName, lastName, email, password} = req.body;
+    const newUser = await User.create({firstName, lastName, email, password});
     createAndSendToken(newUser, 201, res);
 });
 
@@ -38,13 +38,11 @@ export const login = catchAsync(async (req, res, next) => {
     if (!user) {
         return next(new AppError('No user found with that email', 401));
     }
-    ;
     const verified = await bcrypt.compare(password, user.password);
-    if (verified) {
+    if (!verified) {
         return next(new AppError('Incorrect password given', 401));
     }
-    ;
-    createSendToken(user, 200, res);
+    createAndSendToken(user, 200, res);
 });
 
 export const authenticate = catchAsync(async (req, res, next) => {
