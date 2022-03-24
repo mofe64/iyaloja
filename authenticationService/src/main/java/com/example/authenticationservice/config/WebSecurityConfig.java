@@ -22,10 +22,11 @@ import javax.annotation.Resource;
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
-    @Resource(name = "userService")
-    private UserDetailsService userDetailsService;
     @Autowired
     private BCryptPasswordEncoder encoder;
+
+    @Autowired
+    private CustomAuthenticationProvider authProvider;
 
 
     @Override
@@ -36,13 +37,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     public void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(userDetailsService).passwordEncoder(encoder);
-    }
-
-    @Override
-    public void configure(WebSecurity web) {
-        //Note: globally ignore access restrictions
-        web.ignoring().antMatchers("/auth/register/**");
+        auth.authenticationProvider(authProvider);
     }
 
 
@@ -51,8 +46,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         http.cors().and().csrf().disable()
                 .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                .and()
-                .authorizeRequests()
                 .and()
                 .authorizeRequests().antMatchers(HttpMethod.POST, "**/auth/register")
                 .permitAll()

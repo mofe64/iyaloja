@@ -1,18 +1,18 @@
 package com.example.authenticationservice.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document(collection = "roles")
+import java.util.Set;
+
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class Role {
-    @Id
+    @JsonAlias({"_id"})
     private String id;
     private String name;
-    private String description;
+    private Set<Permission> permissions;
 }

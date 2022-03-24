@@ -1,5 +1,6 @@
 package com.example.authenticationservice.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,17 +15,15 @@ import java.util.Set;
 
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Document
-public class User {
-    @Id
-    private String id;
-    @Indexed(unique = true)
-    private String username;
-    @Getter(onMethod = @__(@JsonIgnore))
-    private String password;
-    private Set<String> roles = new HashSet<>();
 
+public class User {
+    @JsonAlias({"_id"})
+    private String id;
+    private String firstName;
+    private String lastName;
+    private String email;
+    private String password;
+    private boolean active;
+    private Set<Role> roles;
 
 }

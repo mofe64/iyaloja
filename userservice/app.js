@@ -6,8 +6,10 @@ import globalErrorHandler from './controllers/ErrorController.js';
 import authRouter from './routers/authRouter.js';
 import adminRouter from "./routers/adminRouter.js";
 import roleRouter from "./routers/roleRouter.js";
+import cors from 'cors';
 
 const app = express();
+app.use(cors());
 dotenv.config({path: './config.env'});
 
 
