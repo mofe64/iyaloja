@@ -26,6 +26,8 @@ const handleJWTExpiredError = () => {
 };
 
 const sendErrorInDevelopment = (err, req, res) => {
+    console.log("Development error")
+    console.log(err)
     return res.status(err.statusCode).json({
         status: err.status,
         error: err,
@@ -40,7 +42,7 @@ const sendErrorInProduction = (err, req, res) => {
             status: err.status,
             message: err.message,
         });
-    };
+    }
 
     //internal errors
     console.log(err);

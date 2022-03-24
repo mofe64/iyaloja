@@ -4,30 +4,36 @@ import catchAsync from "../../userservice/util/catchAsync.js";
 import AppError from '../../userservice/util/AppError.js';
 import bcrypt from 'bcryptjs';
 import {promisify} from 'util';
+import {createAndSendToken} from "../util/util.js";
+import Role from "../models/Role.js";
+import {preparePermissions} from "./RoleController.js";
 
-const signToken = (id) => {
-    return jwt.sign({id}, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRES_IN,
-    } );
-};
-
-const createAndSendToken = (user, statusCode, res) => {
-    const token = signToken(user._id);
-
-    res.status(statusCode).json({
-        status: 'success',
-        token,
-        data: {
-            user,
-        },
-    });
-};
 
 export const register = catchAsync(async (req, res, next) => {
     const {firstName, lastName, email, password} = req.body;
-    const newUser = await User.create({firstName, lastName, email, password});
-    createAndSendToken(newUser, 201, res);
-});
+    const newUser = {firstName, lastName, email, password};
+    let baseUserRole = await Role.findOne({name: 'USER'})
+    if (!baseUserRole) {
+        const permissions = [
+            'ORDER_READ',
+            'ORDER_WRITE',
+            'INVENTORY_READ',
+            'INVENTORY_WRITE',
+            'STATS_READ',
+            'STATS_WRITE',
+            'VENDOR_READ',
+        ]
+        const permIds = await preparePermissions(permissions)
+        baseUserRole = await Role.create({
+            name: 'ROLE_USER',
+            permissions: permIds
+        })
+    }
+    newUser['roles'] = [baseUserRole['_id']]
+    const user = await User.create(newUser)
+    createAndSendToken(user, 201, res);
+})
+
 
 export const login = catchAsync(async (req, res, next) => {
     const {email, password} = req.body;

@@ -17,7 +17,7 @@ const userSchema = new mongoose.Schema(
             required: [true, 'Please enter an email'],
             unique: true,
             lowercase: true,
-            validate: [validator.isEmail , 'please provide a valid email'],
+            validate: [validator.isEmail, 'please provide a valid email'],
         },
         password: {
             type: String,
@@ -33,9 +33,24 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+        roles: {
+            type: [
+                {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "Role"
+                }
+            ],
+            required: [true, "User must have role"],
+        },
     }
 );
-
+userSchema.pre(/^find/, async function (next) {
+    this.populate({
+        path: 'roles',
+        select: 'name permissions'
+    })
+    next()
+})
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
 
