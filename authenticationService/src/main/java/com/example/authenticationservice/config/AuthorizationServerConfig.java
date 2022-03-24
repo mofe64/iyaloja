@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.config.annotation.web.configurers.Aut
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
 
 import javax.annotation.Resource;
+import javax.sql.DataSource;
 
 @Configuration
 public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdapter {
@@ -20,19 +21,22 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 
     @Autowired
     private BCryptPasswordEncoder encoder;
+    @Autowired
+    DataSource dataSource;
 
     @Override
     public void configure(ClientDetailsServiceConfigurer clients) throws
             Exception {
-        clients.inMemory()
-                .withClient("iyaloja")
-                .secret(encoder.encode("thisissecret"))
-                .authorizedGrantTypes(
-                        "refresh_token",
-                        "authorization_code",
-                        "password",
-                        "client_credentials")
-                .scopes("internal", "public");
+//        clients.inMemory()
+//                .withClient("iyaloja")
+//                .secret(encoder.encode("thisissecret"))
+//                .authorizedGrantTypes(
+//                        "refresh_token",
+//                        "authorization_code",
+//                        "password",
+//                        "client_credentials")
+//                .scopes("internal", "public");
+        clients.jdbc(dataSource).passwordEncoder(encoder);
     }
 
     @Override

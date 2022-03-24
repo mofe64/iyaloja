@@ -1,5 +1,3 @@
-SET sql_mode = '';
-
 
 create table if not exists oauth_client_details
 (
