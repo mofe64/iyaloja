@@ -28,6 +28,8 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
                 .withClient("iyaloja")
                 .secret(encoder.encode("thisissecret"))
                 .authorizedGrantTypes(
+                        "refresh_token",
+                        "authorization_code",
                         "password",
                         "client_credentials")
                 .scopes("internal", "public");
